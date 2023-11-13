@@ -1,26 +1,85 @@
 #include "board.h"
+#include "pieces.h"
 
 int main() {
   Board board = {
-      Piece('b', 'r'), Piece('b', 'n'), Piece('b', 'b'), Piece('b', 'q'),
-      Piece('b', 'k'), Piece('b', 'b'), Piece('b', 'n'), Piece('b', 'r'),
-      Piece('b', 'p'), Piece('b', 'p'), Piece('b', 'p'), Piece('b', 'p'),
-      Piece('b', 'p'), Piece('b', 'p'), Piece('b', 'p'), Piece('b', 'r'),
-      Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '),
-      Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '),
-      Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '),
-      Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '),
-      Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '),
-      Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '),
-      Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '),
-      Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '), Piece(' ', ' '),
-      Piece('w', 'p'), Piece('w', 'p'), Piece('w', 'p'), Piece('w', 'p'),
-      Piece('w', 'p'), Piece('w', 'p'), Piece('w', 'p'), Piece('w', 'p'),
-      Piece('w', 'r'), Piece('w', 'n'), Piece('w', 'b'), Piece('w', 'q'),
-      Piece('w', 'k'), Piece('w', 'b'), Piece('w', 'n'), Piece('w', 'r'),
+      Piece(Color::black, PieceType::rook),
+      Piece(Color::black, PieceType::knight),
+      Piece(Color::black, PieceType::bishop),
+      Piece(Color::black, PieceType::queen),
+      Piece(Color::black, PieceType::king),
+      Piece(Color::black, PieceType::bishop),
+      Piece(Color::black, PieceType::knight),
+      Piece(Color::black, PieceType::rook),
+      Piece(Color::black, PieceType::pawn),
+      Piece(Color::black, PieceType::pawn),
+      Piece(Color::black, PieceType::pawn),
+      Piece(Color::black, PieceType::pawn),
+      Piece(Color::black, PieceType::pawn),
+      Piece(Color::black, PieceType::pawn),
+      Piece(Color::black, PieceType::pawn),
+      Piece(Color::black, PieceType::pawn),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::none, PieceType::empty),
+      Piece(Color::white, PieceType::pawn),
+      Piece(Color::white, PieceType::pawn),
+      Piece(Color::white, PieceType::pawn),
+      Piece(Color::white, PieceType::pawn),
+      Piece(Color::white, PieceType::pawn),
+      Piece(Color::white, PieceType::pawn),
+      Piece(Color::white, PieceType::pawn),
+      Piece(Color::white, PieceType::pawn),
+      Piece(Color::white, PieceType::rook),
+      Piece(Color::white, PieceType::knight),
+      Piece(Color::white, PieceType::bishop),
+      Piece(Color::white, PieceType::queen),
+      Piece(Color::white, PieceType::king),
+      Piece(Color::white, PieceType::bishop),
+      Piece(Color::white, PieceType::knight),
+      Piece(Color::white, PieceType::rook),
   };
-  Board newBoard = MovePiece(0, 0, 0, 4, board);
-  DrawBoard(newBoard);
+
+  board[(2 << 3) + 4] = Piece(Color::white, PieceType::king);
+
+  DrawBoard(board);
+
+  MoveList moves;
+  Movement(4, 2, board, moves);
+  for (int i = 0; i < moves.size(); i++) {
+    DrawBoard(moves[i]);
+  }
+
+  std::cout << '\n';
 
   return 0;
 }
