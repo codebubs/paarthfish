@@ -1,8 +1,10 @@
-#include "board.h"
-#include "pieces.h"
+#include <iostream>
+
+#include "core.h"
+#include "engine.h"
 
 int main() {
-  Board board = {
+  Board board = Board({
       Piece(Color::black, PieceType::rook),
       Piece(Color::black, PieceType::knight),
       Piece(Color::black, PieceType::bishop),
@@ -67,19 +69,10 @@ int main() {
       Piece(Color::white, PieceType::bishop),
       Piece(Color::white, PieceType::knight),
       Piece(Color::white, PieceType::rook),
-  };
+  });
 
-  board[(2 << 3) + 4] = Piece(Color::white, PieceType::king);
-
-  DrawBoard(board);
-
-  MoveList moves;
-  Movement(4, 2, board, moves);
-  for (int i = 0; i < moves.size(); i++) {
-    DrawBoard(moves[i]);
-  }
-
-  std::cout << '\n';
-
+  std::cout << "hi" << std::endl;
+  std::cout << NegaMax(-1000, 1000, 3, board);
+  // DrawBoard(board.next->pieceList);
   return 0;
 }

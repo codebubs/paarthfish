@@ -1,11 +1,3 @@
-clear;
-while true
-do
-    g++ *.cpp -o app
-    printf "Finished build!\n"
-    ./app
-    rm ./app
-    printf "Press enter to re-run"
-    read REPLY
-    clear
-done
+g++ *.cpp -o app
+./app
+rm ./app

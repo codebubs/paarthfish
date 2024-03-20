@@ -6,6 +6,11 @@ The best chess engine of 2023?
 
 ### How to Run
 
-Just run `sh run` on Linux.
+#### Linux
+Run `sudo apt-get install g++` if needed, then use `sh run`.
 
-For any other OS: use Linux.
+#### Windows
+Follow [this](https://code.visualstudio.com/docs/cpp/config-mingw#_installing-the-mingww64-toolchain) tutorial, then run `./run`
+
+#### MacOS
+Follow [this](https://www.hellotech.com/guide/for/how-to-install-linux-on-mac) tutorial.
