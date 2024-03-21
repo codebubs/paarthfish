@@ -1,3 +1,0 @@
-g++ *.cpp -o app
-./app
-rm ./app

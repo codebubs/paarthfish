@@ -52,14 +52,15 @@ using MoveList = std::vector<Move>;
 class Board {
  public:
   PieceList pieceList;
+  Color color;
   Board *previous, *next = nullptr;
-  Board(const PieceList& pl) : pieceList(pl) {}
+  Board(const PieceList& pl, Color c) : color(c), pieceList(pl) {}
 };
 
 using BoardList = std::vector<Board>;
 
-void MakeMove(Board& board, const Move& move);
-void Undo(Board& board);
+void MakeMove(Board* board, const Move& move);
+void Undo(Board* board);
 
 void DrawBoard(const PieceList& board);
 

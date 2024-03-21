@@ -1,12 +1,18 @@
 #include "core.h"
 
-void MakeMove(Board& board, const Move& move) {
-  board.next = new Board(board.pieceList);
-  board.next->previous = &board;
-  board.next->pieceList[move.from] = board.next->pieceList[move.to];
-  board.next->pieceList[move.from] = Piece(Color::none, PieceType::empty);
+#include <array>
+#include <iostream>
+#include <vector>
+
+void MakeMove(Board* board, const Move& move) {
+  if (board->next) delete board->next;
+  board->next = new Board(board->pieceList, board->color);
+  board->next->previous = board;
+  board->next->pieceList[move.to] = board->next->pieceList[move.from];
+  board->next->pieceList[move.from] = Piece(Color::none, PieceType::empty);
+  board = board->next;
 }
-void Undo(Board& board) { board = *board.previous; }
+void Undo(Board* board) { board = board->previous; }
 
 void DrawBoard(const PieceList& board) {
   std::cout << "\n   +---+---+---+---+---+---+---+---+\n";
@@ -180,14 +186,14 @@ void Movement(const int& x, const int& y, const PieceList& board,
           i++;
         }
         i = 1;
-        while (x + i >= 0 && y - i <= 7 &&
+        while (x + i <= 7 && y - i >= 0 &&
                board[((y - i) << 3) + x + i].color != Color::white) {
           moves.push_back(Move(x, y, x + i, y - i));
           if (board[((y - i) << 3) + x + i].color == Color::black) break;
           i++;
         }
         i = 1;
-        while (x - i >= 0 && y - i <= 7 &&
+        while (x - i >= 0 && y - i >= 0 &&
                board[((y - i) << 3) + x - i].color != Color::white) {
           moves.push_back(Move(x, y, x - i, y - i));
           if (board[((y - i) << 3) + x - i].color == Color::black) break;
@@ -208,14 +214,14 @@ void Movement(const int& x, const int& y, const PieceList& board,
           i++;
         }
         i = 1;
-        while (x + i >= 0 && y - i <= 7 &&
+        while (x + i <= 7 && y - i >= 0 &&
                board[((y - i) << 3) + x + i].color != Color::black) {
           moves.push_back(Move(x, y, x + i, y - i));
           if (board[((y - i) << 3) + x + i].color == Color::white) break;
           i++;
         }
         i = 1;
-        while (x - i >= 0 && y - i <= 7 &&
+        while (x - i >= 0 && y - i >= 0 &&
                board[((y - i) << 3) + x - i].color != Color::black) {
           moves.push_back(Move(x, y, x - i, y - i));
           if (board[((y - i) << 3) + x - i].color == Color::white) break;
@@ -294,14 +300,14 @@ void Movement(const int& x, const int& y, const PieceList& board,
           i++;
         }
         i = 1;
-        while (x + i >= 0 && y - i <= 7 &&
+        while (x + i <= 7 && y - i >= 0 &&
                board[((y - i) << 3) + x + i].color != Color::white) {
           moves.push_back(Move(x, y, x + i, y - i));
           if (board[((y - i) << 3) + x + i].color == Color::black) break;
           i++;
         }
         i = 1;
-        while (x - i >= 0 && y - i <= 7 &&
+        while (x - i >= 0 && y - i >= 0 &&
                board[((y - i) << 3) + x - i].color != Color::white) {
           moves.push_back(Move(x, y, x - i, y - i));
           if (board[((y - i) << 3) + x - i].color == Color::black) break;
@@ -345,14 +351,14 @@ void Movement(const int& x, const int& y, const PieceList& board,
           i++;
         }
         i = 1;
-        while (x + i >= 0 && y - i <= 7 &&
+        while (x + i <= 7 && y - i >= 0 &&
                board[((y - i) << 3) + x + i].color != Color::black) {
           moves.push_back(Move(x, y, x + i, y - i));
           if (board[((y - i) << 3) + x + i].color == Color::white) break;
           i++;
         }
         i = 1;
-        while (x - i >= 0 && y - i <= 7 &&
+        while (x - i >= 0 && y - i >= 0 &&
                board[((y - i) << 3) + x - i].color != Color::black) {
           moves.push_back(Move(x, y, x - i, y - i));
           if (board[((y - i) << 3) + x - i].color == Color::white) break;
@@ -392,23 +398,27 @@ void Movement(const int& x, const int& y, const PieceList& board,
         if (board[(y << 3) + x - 1].color != Color::white) {
           moves.push_back(Move(x, y, x - 1, y));
         }
-        if (board[((y + 1) << 3) + x].color != Color::white) {
-          moves.push_back(Move(x, y, x, y + 1));
+        if (y != 7) {
+          if (board[((y + 1) << 3) + x].color != Color::white) {
+            moves.push_back(Move(x, y, x, y + 1));
+          }
+          if (board[((y + 1) << 3) + x + 1].color != Color::white) {
+            moves.push_back(Move(x, y, x + 1, y + 1));
+          }
+          if (board[((y + 1) << 3) + x - 1].color != Color::white) {
+            moves.push_back(Move(x, y, x - 1, y + 1));
+          }
         }
-        if (board[((y + 1) << 3) + x + 1].color != Color::white) {
-          moves.push_back(Move(x, y, x + 1, y + 1));
-        }
-        if (board[((y + 1) << 3) + x - 1].color != Color::white) {
-          moves.push_back(Move(x, y, x - 1, y + 1));
-        }
-        if (board[((y - 1) << 3) + x].color != Color::white) {
-          moves.push_back(Move(x, y, x, y - 1));
-        }
-        if (board[((y - 1) << 3) + x + 1].color != Color::white) {
-          moves.push_back(Move(x, y, x + 1, y - 1));
-        }
-        if (board[((y - 1) << 3) + x - 1].color != Color::white) {
-          moves.push_back(Move(x, y, x - 1, y - 1));
+        if (y != 0) {
+          if (board[((y - 1) << 3) + x].color != Color::white) {
+            moves.push_back(Move(x, y, x, y - 1));
+          }
+          if (board[((y - 1) << 3) + x + 1].color != Color::white) {
+            moves.push_back(Move(x, y, x + 1, y - 1));
+          }
+          if (board[((y - 1) << 3) + x - 1].color != Color::white) {
+            moves.push_back(Move(x, y, x - 1, y - 1));
+          }
         }
         break;
       }
