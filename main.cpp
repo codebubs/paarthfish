@@ -4,7 +4,7 @@
 #include "engine.h"
 
 int main() {
-  Board* board = new Board(
+  BoardPointer board = BoardPointer(new Board(
       {
           Piece(Color::black, PieceType::rook),
           Piece(Color::black, PieceType::knight),
@@ -71,9 +71,17 @@ int main() {
           Piece(Color::white, PieceType::knight),
           Piece(Color::white, PieceType::rook),
       },
-      Color::white);
+      Color::white));
 
   std::cout << "Paarthfish" << std::endl;
-  std::cout << NegaMax(-1000, 1000, 10, board);
+  std::cout << Evaluate(board->piece_list) << std::endl;
+  std::cout << Engine(6, board) << std::endl;
+  BoardPointer last_board = board;
+  while (true) {
+    if (!last_board->best_move) break;
+    last_board = last_board->best_move;
+    DrawBoard(last_board->piece_list);
+  }
+  std::cout << Evaluate(board->best_move->piece_list);
   return 0;
 }

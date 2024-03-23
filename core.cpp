@@ -4,19 +4,21 @@
 #include <iostream>
 #include <vector>
 
-void MakeMove(Board* board, const Move& move) {
-  if (board->next) delete board->next;
-  board->next = new Board(board->pieceList, board->color);
-  board->next->previous = board;
-  board->next->pieceList[move.to] = board->next->pieceList[move.from];
-  board->next->pieceList[move.from] = Piece(Color::none, PieceType::empty);
-  board = board->next;
+void MakeMove(BoardPointer board, const Move& move) {
+  Color color;
+  if (board->color == Color::white) {
+    color = Color::black;
+  } else {
+    color = Color::white;
+  }
+  board->next = BoardPointer(new Board(board->piece_list, color));
+  board->next->piece_list[move.to] = board->next->piece_list[move.from];
+  board->next->piece_list[move.from] = Piece(Color::none, PieceType::empty);
 }
-void Undo(Board* board) { board = board->previous; }
 
 void DrawBoard(const PieceList& board) {
   std::cout << "\n   +---+---+---+---+---+---+---+---+\n";
-  for (int i = 0; i < board.size(); i++) {
+  for (size_t i = 0; i < board.size(); i++) {
     char letter;
     switch (board[i].type) {
       case PieceType::pawn:

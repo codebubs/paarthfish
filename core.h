@@ -9,32 +9,7 @@ enum class PieceType { pawn, knight, bishop, rook, queen, king, empty };
 struct Piece {
   Color color;
   PieceType type;
-  int value;
-  Piece(const Color& c, const PieceType& t) : color(c), type(t) {
-    switch (t) {
-      case PieceType::pawn:
-        value = 1;
-        break;
-      case PieceType::knight:
-        value = 3;
-        break;
-      case PieceType::bishop:
-        value = 3;
-        break;
-      case PieceType::rook:
-        value = 5;
-        break;
-      case PieceType::queen:
-        value = 9;
-        break;
-      case PieceType::king:
-        value = 1000;
-        break;
-      default:
-        value = 0;
-        break;
-    }
-  }
+  Piece(const Color& c, const PieceType& t) : color(c), type(t) {}
 };
 
 using PieceList = std::array<Piece, 64>;
@@ -51,16 +26,16 @@ using MoveList = std::vector<Move>;
 
 class Board {
  public:
-  PieceList pieceList;
+  PieceList piece_list;
   Color color;
-  Board *previous, *next = nullptr;
-  Board(const PieceList& pl, Color c) : color(c), pieceList(pl) {}
+  std::shared_ptr<Board> next, best_move;
+  Board(const PieceList& pl, Color c) : color(c), piece_list(pl) {}
 };
 
 using BoardList = std::vector<Board>;
+using BoardPointer = std::shared_ptr<Board>;
 
-void MakeMove(Board* board, const Move& move);
-void Undo(Board* board);
+void MakeMove(BoardPointer board, const Move& move);
 
 void DrawBoard(const PieceList& board);
 
