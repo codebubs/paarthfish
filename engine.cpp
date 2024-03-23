@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include <thread>
+
 #include "core.h"
 
 using PSTable = std::array<int, 64>;
@@ -45,6 +47,8 @@ const PSTable flipped_knight_table = flip_table(knight_table);
 const PSTable flipped_bishop_table = flip_table(bishop_table);
 const PSTable flipped_rook_table = flip_table(rook_table);
 const PSTable flipped_queen_table = flip_table(queen_table);
+
+const unsigned int threads = std::thread::hardware_concurrency();
 
 int Evaluate(const PieceList& board) {
   int score = 0;
@@ -122,5 +126,30 @@ int NegaMax(int alpha, const int& beta, const int& depth, BoardPointer board) {
 }
 
 int Engine(const int& depth, BoardPointer board) {
+  MoveList moves;
+  for (int i = 0; i < 64; i++) {
+    if (board->piece_list[i].color == board->color) {
+      Movement(i, board->piece_list, moves);
+    }
+  }
+
+  unsigned int j = 0;
+  while (j < moves.size()) {
+    const unsigned int t = __min(moves.size() - j, threads);
+    int alpha = -100000;
+    for (size_t i = j; i < j + t; i++) {
+      std::thread thread([&] {
+        MakeMove(board, moves[i]);
+        int score = -NegaMax(alpha, -alpha, depth - 2, board->next);
+
+        if (score > alpha) {
+          alpha = score;
+          board->best_move = board->next;
+        }
+      });
+      thread.join();
+    }
+    j += t;
+  }
   return NegaMax(-100000, 100000, depth, board);
 }

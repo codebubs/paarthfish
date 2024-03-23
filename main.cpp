@@ -75,7 +75,7 @@ int main() {
 
   std::cout << "Paarthfish" << std::endl;
   std::cout << Evaluate(board->piece_list) << std::endl;
-  std::cout << Engine(6, board) << std::endl;
+  std::cout << Engine(8, board) << std::endl;
   BoardPointer last_board = board;
   while (true) {
     if (!last_board->best_move) break;
@@ -83,5 +83,6 @@ int main() {
     DrawBoard(last_board->piece_list);
   }
   std::cout << Evaluate(board->best_move->piece_list);
+  while (true) {}
   return 0;
 }

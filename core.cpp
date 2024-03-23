@@ -315,6 +315,7 @@ void Movement(const int& x, const int& y, const PieceList& board,
           if (board[((y - i) << 3) + x - i].color == Color::black) break;
           i++;
         }
+        i = 1;
         while (y + i <= 7 && board[((y + i) << 3) + x].color != Color::white) {
           moves.push_back(Move(x, y, x, y + i));
           if (board[((y + i) << 3) + x].color == Color::black) break;
@@ -366,6 +367,7 @@ void Movement(const int& x, const int& y, const PieceList& board,
           if (board[((y - i) << 3) + x - i].color == Color::white) break;
           i++;
         }
+        i = 1;
         while (y + i <= 7 && board[((y + i) << 3) + x].color != Color::black) {
           moves.push_back(Move(x, y, x, y + i));
           if (board[((y + i) << 3) + x].color == Color::white) break;
