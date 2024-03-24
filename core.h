@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 enum class Color { black, white, none };
@@ -17,9 +18,12 @@ using PieceList = std::array<Piece, 64>;
 class Move {
  public:
   unsigned int from, to;
-  Move(const int& f, const int& t) : from(f), to(t) {}
-  Move(const int& fx, const int& fy, const int& tx, const int& ty)
-      : from((fy << 3) + fx), to((ty << 3) + tx) {}
+  bool capture;
+  Move(const int& f, const int& t, const bool& c)
+      : from(f), to(t), capture(c) {}
+  Move(const int& fx, const int& fy, const int& tx, const int& ty,
+       const bool& c)
+      : from((fy << 3) + fx), to((ty << 3) + tx), capture(c) {}
 };
 
 using MoveList = std::vector<Move>;

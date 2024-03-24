@@ -50,12 +50,12 @@ const PSTable flipped_queen_table = flip_table(queen_table);
 
 const unsigned int threads = std::thread::hardware_concurrency();
 
-int Evaluate(const PieceList& board) {
+int Evaluate(const BoardPointer board) {
   int score = 0;
   for (int i = 0; i < 64; i++) {
-    if (board[i].type != PieceType::empty) {
-      if (board[i].color == Color::white) {
-        switch (board[i].type) {
+    if (board->piece_list[i].type != PieceType::empty) {
+      if (board->piece_list[i].color == Color::white) {
+        switch (board->piece_list[i].type) {
           case PieceType::pawn:
             score += 100 + pawn_table[i];
             break;
@@ -75,8 +75,8 @@ int Evaluate(const PieceList& board) {
             score += 20000;
             break;
         }
-      } else if (board[i].color == Color::black) {
-        switch (board[i].type) {
+      } else if (board->piece_list[i].color == Color::black) {
+        switch (board->piece_list[i].type) {
           case PieceType::pawn:
             score -= 100 + flipped_pawn_table[i];
             break;
@@ -99,11 +99,41 @@ int Evaluate(const PieceList& board) {
       }
     }
   }
-  return score;
+  return score + 28 * (board->color == Color::white ? 1 : -1);
+}
+int Quiesce(const int& ndepth, int alpha, const int& beta, BoardPointer board) {
+  int score = Evaluate(board);
+  if (score >= beta) return beta;
+  if (ndepth == 0) return score;
+  if (score > alpha) {
+    alpha = score;
+  }
+
+  MoveList moves;
+  for (int i = 0; i < 64; i++) {
+    if (board->piece_list[i].color == board->color) {
+      Movement(i, board->piece_list, moves);
+    }
+  }
+
+  for (size_t i = 0; i < moves.size(); i++) {
+    if (!moves[i].capture) continue;
+    MakeMove(board, moves[i]);
+    int score = -Quiesce(ndepth - 1, -beta, -alpha, board->next);
+
+    if (score > alpha) {
+      board->best_move = board->next;
+      alpha = score;
+    }
+    if (score >= beta) return beta;
+  }
+  return alpha;
 }
 
 int NegaMax(int alpha, const int& beta, const int& depth, BoardPointer board) {
-  if (depth == 0) return Evaluate(board->piece_list);
+  if (depth == 0) {
+    return Quiesce(4, alpha, beta, board);
+  }
   MoveList moves;
   for (int i = 0; i < 64; i++) {
     if (board->piece_list[i].color == board->color) {
@@ -134,16 +164,16 @@ int Engine(const int& depth, BoardPointer board) {
   }
 
   unsigned int j = 0;
+  int best_score = -100000;
   while (j < moves.size()) {
     const unsigned int t = __min(moves.size() - j, threads);
-    int alpha = -100000;
     for (size_t i = j; i < j + t; i++) {
       std::thread thread([&] {
         MakeMove(board, moves[i]);
-        int score = -NegaMax(alpha, -alpha, depth - 2, board->next);
+        int score = -NegaMax(-100000, -best_score, depth - 1, board->next);
 
-        if (score > alpha) {
-          alpha = score;
+        if (score > best_score) {
+          best_score = score;
           board->best_move = board->next;
         }
       });
@@ -151,5 +181,5 @@ int Engine(const int& depth, BoardPointer board) {
     }
     j += t;
   }
-  return NegaMax(-100000, 100000, depth, board);
+  return best_score;
 }

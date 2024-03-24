@@ -73,16 +73,14 @@ int main() {
       },
       Color::white));
 
-  std::cout << "Paarthfish" << std::endl;
-  std::cout << Evaluate(board->piece_list) << std::endl;
-  std::cout << Engine(8, board) << std::endl;
+  std::cout << "Paarthfish v0.1.0" << std::endl;
+  std::cout << "Evaluation: " << Engine(8, board) << std::endl;
   BoardPointer last_board = board;
   while (true) {
     if (!last_board->best_move) break;
     last_board = last_board->best_move;
     DrawBoard(last_board->piece_list);
   }
-  std::cout << Evaluate(board->best_move->piece_list);
-  while (true) {}
+  system("pause");
   return 0;
 }
