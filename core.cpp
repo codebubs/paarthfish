@@ -1,9 +1,5 @@
 #include "core.h"
 
-#include <array>
-#include <iostream>
-#include <vector>
-
 void MakeMove(BoardPointer board, const Move& move) {
   Color color;
   if (board->color == Color::white) {
@@ -11,16 +7,62 @@ void MakeMove(BoardPointer board, const Move& move) {
   } else {
     color = Color::white;
   }
-  board->next = BoardPointer(new Board(board->piece_list, color));
-  board->next->piece_list[move.to] = board->next->piece_list[move.from];
-  board->next->piece_list[move.from] = Piece(Color::none, PieceType::empty);
+  bool wlc = board->wlc, wrc = board->wrc, blc = board->blc, brc = board->brc;
+  if (board->piece_list[move.from].type == PieceType::king) {
+    if (board->color == Color::white) {
+      wlc = false;
+      wrc = false;
+    } else {
+      blc = false;
+      brc = false;
+    }
+  }
+  if (move.from == 56 || move.to == 56) wlc = false;
+  if (move.from == 63 || move.to == 63) wrc = false;
+  if (move.from == 0 || move.to == 0) blc = false;
+  if (move.from == 7 || move.to == 7) brc = false;
+
+  board->next =
+      BoardPointer(new Board(board->piece_list, color, wlc, wrc, blc, brc));
+  if (move.castle == 1) {
+    if (board->color == Color::white) {
+      board->next->piece_list[62] = board->next->piece_list[60];
+      board->next->piece_list[61] = board->next->piece_list[63];
+      board->next->piece_list[60] = Piece(Color::none, PieceType::empty);
+      board->next->piece_list[63] = Piece(Color::none, PieceType::empty);
+    } else {
+      board->next->piece_list[6] = board->next->piece_list[4];
+      board->next->piece_list[5] = board->next->piece_list[7];
+      board->next->piece_list[4] = Piece(Color::none, PieceType::empty);
+      board->next->piece_list[7] = Piece(Color::none, PieceType::empty);
+    }
+  } else if (move.castle == -1) {
+    if (board->color == Color::white) {
+      board->next->piece_list[58] = board->next->piece_list[60];
+      board->next->piece_list[59] = board->next->piece_list[56];
+      board->next->piece_list[60] = Piece(Color::none, PieceType::empty);
+      board->next->piece_list[56] = Piece(Color::none, PieceType::empty);
+    } else {
+      board->next->piece_list[2] = board->next->piece_list[4];
+      board->next->piece_list[3] = board->next->piece_list[0];
+      board->next->piece_list[4] = Piece(Color::none, PieceType::empty);
+      board->next->piece_list[0] = Piece(Color::none, PieceType::empty);
+    }
+  } else {
+    if (move.promotion != PieceType::empty) {
+      board->next->piece_list[move.to] = Piece(board->color, move.promotion);
+    } else {
+      board->next->piece_list[move.to] = board->next->piece_list[move.from];
+    }
+    board->next->piece_list[move.from] = Piece(Color::none, PieceType::empty);
+  }
 }
 
-void DrawBoard(const PieceList& board) {
-  std::cout << "\n   +---+---+---+---+---+---+---+---+\n";
-  for (size_t i = 0; i < board.size(); i++) {
+void DrawBoard(BoardPointer board) {
+  std::cout << "   +---+---+---+---+---+---+---+---+" << std::endl;
+  for (size_t i = 0; i < board->piece_list.size(); i++) {
     char letter;
-    switch (board[i].type) {
+    switch (board->piece_list[i].type) {
       case PieceType::pawn:
         letter = 'p';
         break;
@@ -47,56 +89,93 @@ void DrawBoard(const PieceList& board) {
     if ((i & 7u) == 0u) {
       std::cout << ' ' << 8 - (i >> 3u) << ' ';
     }
-    if (board[i].color == Color::white) {
+    if (board->piece_list[i].color == Color::white) {
       std::cout << "| " << (char)toupper(letter) << " ";
     } else {
       std::cout << "| " << letter << " ";
     }
     if ((i & 7u) == 7u) {
-      std::cout << "|\n   +---+---+---+---+---+---+---+---+\n";
+      std::cout << "|" << std::endl
+                << "   +---+---+---+---+---+---+---+---+" << std::endl;
     }
   }
-  std::cout << "     a   b   c   d   e   f   g   h\n";
+  std::cout << "     a   b   c   d   e   f   g   h" << std::endl;
+  std::cout << board->wlc << board->wrc << board->blc << board->brc
+            << std::endl;
 }
 
-void Movement(const int& n, const PieceList& board, MoveList& moves) {
+void Movement(const int& n, BoardPointer board, MoveList& moves) {
   return Movement(n & 7, n >> 3, board, moves);
 }
-void Movement(const int& x, const int& y, const PieceList& board,
-              MoveList& moves) {
+void Movement(const int& x, const int& y, BoardPointer b, MoveList& moves) {
+  const PieceList& board = b->piece_list;
   switch (board[(y << 3) + x].type) {
     case PieceType::pawn:
       if (board[(y << 3) + x].color == Color::white) {
         if (y > 0) {
-          if (board[((y - 1) << 3) + x].type == PieceType::empty) {
-            moves.push_back(Move(x, y, x, y - 1, false));
-          }
-          if (board[((y - 1) << 3) + x - 1].color == Color::black) {
-            moves.push_back(Move(x, y, x - 1, y - 1, true));
-          }
-          if (board[((y - 1) << 3) + x + 1].color == Color::black) {
-            moves.push_back(Move(x, y, x + 1, y - 1, true));
-          }
-          if (y == 6) {
-            if (board[((y - 2) << 3) + x].type == PieceType::empty) {
-              moves.push_back(Move(x, y, x, y - 2, false));
+          if (y == 1) {
+            for (int i = 1; i < 5; i++) {
+              if (board[((y - 1) << 3) + x].type == PieceType::empty) {
+                moves.push_back(Move(x, y, x, y - 1, false, (PieceType)i));
+              }
+              if (x > 0 &&
+                  board[((y - 1) << 3) + x - 1].color == Color::black) {
+                moves.push_back(Move(x, y, x - 1, y - 1, true, (PieceType)i));
+              }
+              if (x < 7 &&
+                  board[((y - 1) << 3) + x + 1].color == Color::black) {
+                moves.push_back(Move(x, y, x + 1, y - 1, true, (PieceType)i));
+              }
+            }
+          } else {
+            if (board[((y - 1) << 3) + x].type == PieceType::empty) {
+              moves.push_back(Move(x, y, x, y - 1, false));
+            }
+            if (x > 0 && board[((y - 1) << 3) + x - 1].color == Color::black) {
+              moves.push_back(Move(x, y, x - 1, y - 1, true));
+            }
+            if (x < 7 && board[((y - 1) << 3) + x + 1].color == Color::black) {
+              moves.push_back(Move(x, y, x + 1, y - 1, true));
+            }
+            if (y == 6) {
+              if (board[((y - 2) << 3) + x].type == PieceType::empty &&
+                  board[((y - 1) << 3) + x].type == PieceType::empty) {
+                moves.push_back(Move(x, y, x, y - 2, false));
+              }
             }
           }
         }
       } else {
         if (y < 7) {
-          if (board[((y + 1) << 3) + x].type == PieceType::empty) {
-            moves.push_back(Move(x, y, x, y + 1, false));
-          }
-          if (board[((y + 1) << 3) + x - 1].color == Color::white) {
-            moves.push_back(Move(x, y, x - 1, y + 1, true));
-          }
-          if (board[((y + 1) << 3) + x + 1].color == Color::white) {
-            moves.push_back(Move(x, y, x + 1, y + 1, true));
-          }
-          if (y == 1) {
-            if (board[((y + 2) << 3) + x].type == PieceType::empty) {
-              moves.push_back(Move(x, y, x, y + 2, false));
+          if (y == 6) {
+            for (int i = 1; i < 5; i++) {
+              if (board[((y + 1) << 3) + x].type == PieceType::empty) {
+                moves.push_back(Move(x, y, x, y + 1, false, (PieceType)i));
+              }
+              if (x > 0 &&
+                  board[((y + 1) << 3) + x - 1].color == Color::white) {
+                moves.push_back(Move(x, y, x - 1, y + 1, true, (PieceType)i));
+              }
+              if (x < 7 &&
+                  board[((y + 1) << 3) + x + 1].color == Color::white) {
+                moves.push_back(Move(x, y, x + 1, y + 1, true, (PieceType)i));
+              }
+            }
+          } else {
+            if (board[((y + 1) << 3) + x].type == PieceType::empty) {
+              moves.push_back(Move(x, y, x, y + 1, false));
+            }
+            if (x > 0 && board[((y + 1) << 3) + x - 1].color == Color::white) {
+              moves.push_back(Move(x, y, x - 1, y + 1, true));
+            }
+            if (x < 7 && board[((y + 1) << 3) + x + 1].color == Color::white) {
+              moves.push_back(Move(x, y, x + 1, y + 1, true));
+            }
+            if (y == 1) {
+              if (board[((y + 2) << 3) + x].type == PieceType::empty &&
+                  board[((y + 1) << 3) + x].type == PieceType::empty) {
+                moves.push_back(Move(x, y, x, y + 2, false));
+              }
             }
           }
         }
@@ -566,47 +645,67 @@ void Movement(const int& x, const int& y, const PieceList& board,
                      board[((y - 1) << 3) + x - 1].color == Color::black));
           }
         }
+        if (b->wlc && board[57].type == PieceType::empty &&
+            board[58].type == PieceType::empty &&
+            board[59].type == PieceType::empty) {
+          moves.push_back(Move(-1));
+        }
+        if (b->wrc && board[62].type == PieceType::empty &&
+            board[61].type == PieceType::empty) {
+          moves.push_back(Move(1));
+        }
       } else {
-        if (x != 7 && board[(y << 3) + x + 1].color != Color::white) {
-          moves.push_back(Move(x, y, x + 1, y,
-                               board[(y << 3) + x + 1].color == Color::white));
-        }
-        if (x != 0 && board[(y << 3) + x - 1].color != Color::white) {
-          moves.push_back(Move(x, y, x - 1, y,
-                               board[(y << 3) + x - 1].color == Color::white));
-        }
-        if (y != 7) {
-          if (board[((y + 1) << 3) + x].color != Color::white) {
-            moves.push_back(
-                Move(x, y, x, y + 1,
-                     board[((y + 1) << 3) + x].color == Color::white));
+        if (board[(y << 3) + x].color == Color::black) {
+          if (x != 7 && board[(y << 3) + x + 1].color != Color::black) {
+            moves.push_back(Move(
+                x, y, x + 1, y, board[(y << 3) + x + 1].color == Color::white));
           }
-          if (x != 7 && board[((y + 1) << 3) + x + 1].color != Color::white) {
-            moves.push_back(
-                Move(x, y, x + 1, y + 1,
-                     board[((y + 1) << 3) + x + 1].color == Color::white));
+          if (x != 0 && board[(y << 3) + x - 1].color != Color::black) {
+            moves.push_back(Move(
+                x, y, x - 1, y, board[(y << 3) + x - 1].color == Color::white));
           }
-          if (x != 0 && board[((y + 1) << 3) + x - 1].color != Color::white) {
-            moves.push_back(
-                Move(x, y, x - 1, y + 1,
-                     board[((y + 1) << 3) + x - 1].color == Color::white));
+          if (y != 7) {
+            if (board[((y + 1) << 3) + x].color != Color::black) {
+              moves.push_back(
+                  Move(x, y, x, y + 1,
+                       board[((y + 1) << 3) + x].color == Color::white));
+            }
+            if (x != 7 && board[((y + 1) << 3) + x + 1].color != Color::black) {
+              moves.push_back(
+                  Move(x, y, x + 1, y + 1,
+                       board[((y + 1) << 3) + x + 1].color == Color::white));
+            }
+            if (x != 0 && board[((y + 1) << 3) + x - 1].color != Color::black) {
+              moves.push_back(
+                  Move(x, y, x - 1, y + 1,
+                       board[((y + 1) << 3) + x - 1].color == Color::white));
+            }
           }
-        }
-        if (y != 0) {
-          if (board[((y - 1) << 3) + x].color != Color::white) {
-            moves.push_back(
-                Move(x, y, x, y - 1,
-                     board[((y - 1) << 3) + x].color == Color::white));
+          if (y != 0) {
+            if (board[((y - 1) << 3) + x].color != Color::black) {
+              moves.push_back(
+                  Move(x, y, x, y - 1,
+                       board[((y - 1) << 3) + x].color == Color::white));
+            }
+            if (x != 7 && board[((y - 1) << 3) + x + 1].color != Color::black) {
+              moves.push_back(
+                  Move(x, y, x + 1, y - 1,
+                       board[((y - 1) << 3) + x + 1].color == Color::white));
+            }
+            if (x != 0 && board[((y - 1) << 3) + x - 1].color != Color::black) {
+              moves.push_back(
+                  Move(x, y, x - 1, y - 1,
+                       board[((y - 1) << 3) + x - 1].color == Color::white));
+            }
           }
-          if (x != 7 && board[((y - 1) << 3) + x + 1].color != Color::white) {
-            moves.push_back(
-                Move(x, y, x + 1, y - 1,
-                     board[((y - 1) << 3) + x + 1].color == Color::white));
+          if (b->blc && board[1].type == PieceType::empty &&
+              board[2].type == PieceType::empty &&
+              board[3].type == PieceType::empty) {
+            moves.push_back(Move(-1));
           }
-          if (x != 0 && board[((y - 1) << 3) + x - 1].color != Color::white) {
-            moves.push_back(
-                Move(x, y, x - 1, y - 1,
-                     board[((y - 1) << 3) + x - 1].color == Color::white));
+          if (b->brc && board[5].type == PieceType::empty &&
+              board[6].type == PieceType::empty) {
+            moves.push_back(Move(1));
           }
         }
       }

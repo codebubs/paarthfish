@@ -1,7 +1,5 @@
 #include "engine.h"
 
-#include <thread>
-
 #include "core.h"
 
 using PSTable = std::array<int, 64>;
@@ -13,6 +11,8 @@ PSTable flip_table(const PSTable& table) {
   }
   return new_table;
 }
+
+const std::array<int, 6>& aspiration = {10, 30, 75, 150, 400, 100000};
 
 const PSTable pawn_table = {
     0,  0,  0,  0,   0,   0,  0,  0,  50, 50, 50,  50, 50, 50,  50, 50,
@@ -47,8 +47,6 @@ const PSTable flipped_knight_table = flip_table(knight_table);
 const PSTable flipped_bishop_table = flip_table(bishop_table);
 const PSTable flipped_rook_table = flip_table(rook_table);
 const PSTable flipped_queen_table = flip_table(queen_table);
-
-const unsigned int threads = std::thread::hardware_concurrency();
 
 int Evaluate(const BoardPointer board) {
   int score = 0;
@@ -99,7 +97,7 @@ int Evaluate(const BoardPointer board) {
       }
     }
   }
-  return score + 28 * (board->color == Color::white ? 1 : -1);
+  return (score + 28) * (board->color == Color::white ? 1 : -1);
 }
 int Quiesce(const int& ndepth, int alpha, const int& beta, BoardPointer board) {
   int score = Evaluate(board);
@@ -112,7 +110,7 @@ int Quiesce(const int& ndepth, int alpha, const int& beta, BoardPointer board) {
   MoveList moves;
   for (int i = 0; i < 64; i++) {
     if (board->piece_list[i].color == board->color) {
-      Movement(i, board->piece_list, moves);
+      Movement(i, board, moves);
     }
   }
 
@@ -122,7 +120,7 @@ int Quiesce(const int& ndepth, int alpha, const int& beta, BoardPointer board) {
     int score = -Quiesce(ndepth - 1, -beta, -alpha, board->next);
 
     if (score > alpha) {
-      board->best_move = board->next;
+      board->best_pos = board->next;
       alpha = score;
     }
     if (score >= beta) return beta;
@@ -137,7 +135,7 @@ int NegaMax(int alpha, const int& beta, const int& depth, BoardPointer board) {
   MoveList moves;
   for (int i = 0; i < 64; i++) {
     if (board->piece_list[i].color == board->color) {
-      Movement(i, board->piece_list, moves);
+      Movement(i, board, moves);
     }
   }
 
@@ -146,40 +144,69 @@ int NegaMax(int alpha, const int& beta, const int& depth, BoardPointer board) {
 
     int score = -NegaMax(-beta, -alpha, depth - 1, board->next);
 
+    if (score >= beta) return beta;
     if (score > alpha) {
       alpha = score;
-      board->best_move = board->next;
+      board->best_pos = board->next;
+      board->best_move = moves[i];
     }
-    if (score >= beta) return beta;
   }
   return alpha;
 }
 
 int Engine(const int& depth, BoardPointer board) {
-  MoveList moves;
+  MoveList oMoves;
   for (int i = 0; i < 64; i++) {
     if (board->piece_list[i].color == board->color) {
-      Movement(i, board->piece_list, moves);
+      Movement(i, board, oMoves);
     }
   }
 
-  unsigned int j = 0;
-  int best_score = -100000;
-  while (j < moves.size()) {
-    const unsigned int t = __min(moves.size() - j, threads);
-    for (size_t i = j; i < j + t; i++) {
-      std::thread thread([&] {
-        MakeMove(board, moves[i]);
-        int score = -NegaMax(-100000, -best_score, depth - 1, board->next);
-
-        if (score > best_score) {
-          best_score = score;
-          board->best_move = board->next;
+  std::cout << "0%";
+  std::optional<Move> best_move;
+  int last_score;
+  for (int d = 4; d < depth; d++) {
+    MoveList moves = oMoves;
+    for (size_t j = 0; j < oMoves.size(); j++) {
+      if (best_move.has_value()) {
+        if (oMoves[j].from != best_move.value().from ||
+            oMoves[j].to != best_move.value().to) {
+          moves.push_back(oMoves[j]);
         }
-      });
-      thread.join();
+        moves.insert(moves.begin(), best_move.value());
+      } else {
+        moves = oMoves;
+      }
     }
-    j += t;
+    int best_score = -100000;
+    for (int i = 0; i < moves.size(); i++) {
+      MakeMove(board, moves[i]);
+      int score;
+      if (last_score) {
+        for (size_t i = 0; i < aspiration.size(); i++) {
+          score = -NegaMax(last_score + aspiration[i],
+                           __max(last_score - aspiration[i], -best_score),
+                           d - 1, board->next);
+          if (score > last_score + aspiration[i]) break;
+        }
+      } else {
+        score = -NegaMax(-100000, -best_score, d - 1, board->next);
+      }
+      if (score > best_score) {
+        best_score = score;
+        board->best_pos = board->next;
+        best_move = moves[i];
+        board->best_move = moves[i];
+      }
+      std::cout << "Depth: " << d + 1
+                << std::string(5 - (int)log10((double)d), ' ')
+                << round(
+                       (double(d) - 4.0 + (double(i) / double(moves.size()))) /
+                       double(depth - 4) * 1000.0) /
+                       10.0
+                << "%      \r";
+    }
+    last_score = best_score;
   }
-  return best_score;
+  return last_score;
 }
