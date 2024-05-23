@@ -41,7 +41,7 @@ class Board {
   PieceList piece_list;
   Color color;
   std::optional<Move> best_move;
-  std::shared_ptr<Board> next, best_pos;
+  std::shared_ptr<Board> previous, next, best_pos;
   bool wlc, wrc, blc, brc;
   Board(const PieceList& pl, Color c)
       : color(c), piece_list(pl), wlc(true), wrc(true), blc(true), brc(true) {}
@@ -56,4 +56,9 @@ void MakeMove(BoardPointer board, const Move& move);
 void DrawBoard(BoardPointer board);
 
 void Movement(const int& n, BoardPointer board, MoveList& moves);
+void Movement(const int& n, BoardPointer board, MoveList& moves, bool special);
 void Movement(const int& x, const int& y, BoardPointer b, MoveList& moves);
+void Movement(const int& x, const int& y, BoardPointer b, MoveList& moves,
+              bool special);
+
+bool InCheck(const int& k, BoardPointer board);

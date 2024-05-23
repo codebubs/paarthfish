@@ -77,6 +77,7 @@ int main() {
   int depth = 8;
   int color;
   Color engine = Color::none;
+  bool engine_enabled = true;
   std::cout << "Depth: ";
   std::cin >> depth;
   std::cout << "You play white (0) or black (1): ";
@@ -89,7 +90,7 @@ int main() {
     std::cout << std::endl;
     DrawBoard(board);
     std::cout << std::endl;
-    if (board->color == engine) {
+    if (board->color == engine && engine_enabled) {
       const int& eval = Engine(depth, board);
       system("cls");
       std::cout << "Evaluation: " << eval * (engine == Color::white ? 1 : -1)
@@ -137,13 +138,79 @@ int main() {
       MakeMove(board, board->best_move.value());
       game.push_back(board->best_move.value());
     } else {
-      std::string from, to;
+      std::string cmd;
       int f, t;
       std::optional<Move> move;
-      std::cout << "Move: ";
-      std::cin >> from;
-      for (char& c : from) c = tolower(c);
-      if (from == "o-o") {
+      std::cout << "Command: ";
+      std::cin >> cmd;
+      for (char& c : cmd) c = tolower(c);
+      if (cmd.find_first_not_of('a') == std::string::npos) {
+        BoardPointer last_board = board;
+        int i = 0;
+        while (true) {
+          last_board = last_board->previous;
+          if (!last_board) {
+            std::cout << "Cannot go back " << cmd.size() << " times"
+                      << std::endl;
+            system("pause");
+            break;
+          } else if (++i == cmd.size()) {
+            board = last_board;
+            break;
+          }
+        }
+        system("cls");
+        continue;
+      } else if (cmd.find_first_not_of('d') == std::string::npos) {
+        BoardPointer last_board = board;
+        int i = 0;
+        while (true) {
+          last_board = last_board->next;
+          if (!last_board) {
+            std::cout << "Cannot go forward " << cmd.size() << " times"
+                      << std::endl;
+            system("pause");
+            break;
+          } else if (++i == cmd.size()) {
+            board = last_board;
+            break;
+          }
+        }
+        system("cls");
+        continue;
+      } else if (cmd == "disable") {
+        engine_enabled = false;
+        std::cout << "Disabled engine" << std::endl;
+        system("pause");
+        system("cls");
+        continue;
+      } else if (cmd == "enable") {
+        engine_enabled = true;
+        std::cout << "Enabled engine" << std::endl;
+        system("pause");
+        system("cls");
+        continue;
+      } else if (cmd == "help") {
+        system("cls");
+        std::cout
+            << "Usage:" << std::endl
+            << "a/d:     Go back/forward respectively. Type characters"
+            << std::endl
+            << "         on the same line to go back that many half-moves"
+            << std::endl
+            << "         (e.g. \"aaa\" to go back 3 half-moves)." << std::endl
+            << "disable: Disable the engine" << std::endl
+            << "enable:  Enable the engine" << std::endl
+            << "o-o:     Castle short." << std::endl
+            << "o-o-o:   Castle long." << std::endl
+            << "Move:    To move, type the starting and ending square for the "
+            << std::endl
+            << "        move (e.g. \"e2e4\" to move the piece at e2 to e4)."
+            << std::endl;
+        system("pause");
+        system("cls");
+        continue;
+      } else if (cmd == "o-o") {
         MoveList possible_moves;
         Movement(board->color == Color::white ? 60 : 4, board, possible_moves);
         for (int i = 0; i < possible_moves.size(); i++) {
@@ -156,7 +223,7 @@ int main() {
           std::cout << "Invalid move" << std::endl;
           continue;
         }
-      } else if (from == "o-o-o") {
+      } else if (cmd == "o-o-o") {
         MoveList possible_moves;
         Movement(board->color == Color::white ? 60 : 4, board, possible_moves);
         for (int i = 0; i < possible_moves.size(); i++) {
@@ -169,15 +236,11 @@ int main() {
           std::cout << "Invalid move" << std::endl;
           continue;
         }
-      } else {
-        std::cout << "To: ";
-        std::cin >> to;
-        for (char& c : to) c = tolower(c);
-        f = (from[0] - 'a') + 8 * (7 - (from[1] - '1'));
-        t = (to[0] - 'a') + 8 * (7 - (to[1] - '1'));
-        if (from.length() != 2 || to.length() != 2 || f < 0 || f > 63 ||
-            t < 0 || t > 63) {
-          std::cout << "Invalid input" << std::endl;
+      } else if (cmd.length() == 4) {
+        f = (cmd[0] - 'a') + 8 * (7 - (cmd[1] - '1'));
+        t = (cmd[2] - 'a') + 8 * (7 - (cmd[3] - '1'));
+        if (f < 0 || f > 63 || t < 0 || t > 63) {
+          std::cout << "Invalid move" << std::endl;
           continue;
         }
         MoveList possible_moves;
@@ -215,6 +278,10 @@ int main() {
           }
           move->promotion = promotion_piece;
         }
+      } else {
+        std::cout << "Invalid command" << std::endl
+                  << "Type \"help\" for help" << std::endl;
+        continue;
       }
       system("cls");
       MakeMove(board, move.value());

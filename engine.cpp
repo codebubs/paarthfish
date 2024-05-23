@@ -12,8 +12,6 @@ PSTable flip_table(const PSTable& table) {
   return new_table;
 }
 
-const std::array<int, 6>& aspiration = {10, 30, 75, 150, 400, 100000};
-
 const PSTable pawn_table = {
     0,  0,  0,  0,   0,   0,  0,  0,  50, 50, 50,  50, 50, 50,  50, 50,
     10, 10, 20, 30,  30,  20, 10, 10, 5,  5,  10,  25, 25, 10,  5,  5,
@@ -50,53 +48,71 @@ const PSTable flipped_queen_table = flip_table(queen_table);
 
 int Evaluate(const BoardPointer board) {
   int score = 0;
+  int pieces = 0;
   for (int i = 0; i < 64; i++) {
     if (board->piece_list[i].type != PieceType::empty) {
       if (board->piece_list[i].color == Color::white) {
         switch (board->piece_list[i].type) {
           case PieceType::pawn:
             score += 100 + pawn_table[i];
+            pieces++;
             break;
           case PieceType::knight:
             score += 320 + knight_table[i];
+            pieces++;
             break;
           case PieceType::bishop:
             score += 330 + bishop_table[i];
+            pieces++;
             break;
           case PieceType::rook:
             score += 500 + rook_table[i];
+            pieces++;
             break;
           case PieceType::queen:
             score += 900 + queen_table[i];
+            pieces++;
             break;
           case PieceType::king:
             score += 20000;
+            pieces++;
             break;
         }
       } else if (board->piece_list[i].color == Color::black) {
         switch (board->piece_list[i].type) {
           case PieceType::pawn:
             score -= 100 + flipped_pawn_table[i];
+            pieces++;
             break;
           case PieceType::knight:
             score -= 320 + flipped_knight_table[i];
+            pieces++;
             break;
           case PieceType::bishop:
             score -= 330 + flipped_bishop_table[i];
+            pieces++;
             break;
           case PieceType::rook:
             score -= 500 + flipped_rook_table[i];
+            pieces++;
             break;
           case PieceType::queen:
             score -= 900 + flipped_queen_table[i];
+            pieces++;
             break;
           case PieceType::king:
             score -= 20000;
+            pieces++;
             break;
         }
       }
     }
   }
+  if (board->wlc) score += 35;
+  if (board->wrc) score += 45;
+  if (board->blc) score -= 35;
+  if (board->brc) score -= 45;
+  // score += 4 * (16 - pieces);
   return (score + 28) * (board->color == Color::white ? 1 : -1);
 }
 int Quiesce(const int& ndepth, int alpha, const int& beta, BoardPointer board) {
@@ -132,6 +148,11 @@ int NegaMax(int alpha, const int& beta, const int& depth, BoardPointer board) {
   if (depth == 0) {
     return Quiesce(4, alpha, beta, board);
   }
+
+  int eval = Evaluate(board);
+  if (eval < -10000) return -100000;
+  if (eval > 10000) return 100000;
+
   MoveList moves;
   for (int i = 0; i < 64; i++) {
     if (board->piece_list[i].color == board->color) {
@@ -141,7 +162,6 @@ int NegaMax(int alpha, const int& beta, const int& depth, BoardPointer board) {
 
   for (size_t i = 0; i < moves.size(); i++) {
     MakeMove(board, moves[i]);
-
     int score = -NegaMax(-beta, -alpha, depth - 1, board->next);
 
     if (score >= beta) return beta;
@@ -151,14 +171,16 @@ int NegaMax(int alpha, const int& beta, const int& depth, BoardPointer board) {
       board->best_move = moves[i];
     }
   }
+  if (alpha > 69420) return alpha - 1;
+  if (alpha < -69420) return alpha + 1;
   return alpha;
 }
 
 int Engine(const int& depth, BoardPointer board) {
-  MoveList oMoves;
+  MoveList o_moves;
   for (int i = 0; i < 64; i++) {
     if (board->piece_list[i].color == board->color) {
-      Movement(i, board, oMoves);
+      Movement(i, board, o_moves);
     }
   }
 
@@ -166,32 +188,26 @@ int Engine(const int& depth, BoardPointer board) {
   std::optional<Move> best_move;
   int last_score;
   for (int d = 4; d < depth; d++) {
-    MoveList moves = oMoves;
-    for (size_t j = 0; j < oMoves.size(); j++) {
-      if (best_move.has_value()) {
-        if (oMoves[j].from != best_move.value().from ||
-            oMoves[j].to != best_move.value().to) {
-          moves.push_back(oMoves[j]);
+    MoveList moves;
+    if (best_move.has_value()) {
+      for (size_t j = 0; j < o_moves.size(); j++) {
+        if (o_moves[j].from != best_move.value().from ||
+            o_moves[j].to != best_move.value().to) {
+          moves.push_back(o_moves[j]);
+        } else {
+          moves.insert(moves.begin(), best_move.value());
         }
-        moves.insert(moves.begin(), best_move.value());
-      } else {
-        moves = oMoves;
+      }
+    } else {
+      moves = o_moves;
+      for (size_t j = 0; j < o_moves.size(); j++) {
+        MakeMove(board, o_moves[j]);
       }
     }
     int best_score = -100000;
     for (int i = 0; i < moves.size(); i++) {
       MakeMove(board, moves[i]);
-      int score;
-      if (last_score) {
-        for (size_t i = 0; i < aspiration.size(); i++) {
-          score = -NegaMax(last_score + aspiration[i],
-                           __max(last_score - aspiration[i], -best_score),
-                           d - 1, board->next);
-          if (score > last_score + aspiration[i]) break;
-        }
-      } else {
-        score = -NegaMax(-100000, -best_score, d - 1, board->next);
-      }
+      int score = -NegaMax(-100000, -best_score, d - 1, board->next);
       if (score > best_score) {
         best_score = score;
         board->best_pos = board->next;
